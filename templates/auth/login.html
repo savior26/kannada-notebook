@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151f2a">
+  <title>Sign in · Kannada Notebook LM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/auth.css') }}">
+  <script src="{{ url_for('static', path='/js/auth.js') }}" defer></script>
+</head>
+<body>
+  <main class="auth-shell">
+    <a class="brand" href="/auth/login" aria-label="Kannada Notebook LM home"><span class="brand-mark">K</span><span>Kannada Notebook LM</span></a>
+    <section class="auth-panel" aria-labelledby="page-title">
+      <div class="eyebrow">YOUR IDEAS, IN ONE PLACE</div>
+      <h1 id="page-title">Welcome back</h1>
+      <p class="subtitle">Sign in to continue to your notebooks.</p>
+
+      {% if registered %}<div class="notice success" role="status">Your account is ready. Sign in to get started.</div>{% endif %}
+      {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+
+      <form action="/auth/login" method="post" class="auth-form">
+        <label for="email">Email address</label>
+        <div class="input-wrap"><span class="input-icon" aria-hidden="true">✉</span>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" value="{{ email|default('', true) }}" required autofocus>
+        </div>
+
+        <div class="label-row"><label for="password">Password</label></div>
+        <div class="input-wrap"><span class="input-icon key-icon" aria-hidden="true">⌑</span>
+          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" minlength="4" maxlength="8" required>
+          <button class="visibility-toggle" type="button" aria-label="Show password" aria-pressed="false" data-password-toggle="password">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m4 4 16 16"/></svg>
+          </button>
+        </div>
+
+        <button class="primary-button" type="submit">Sign in <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="switch-auth">New to Kannada Notebook LM? <a class="text-link" href="/auth/register">Create an account</a></p>
+    </section>
+    <footer>Secure access to your personal knowledge space</footer>
+  </main>
+</body>
+</html>

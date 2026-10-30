@@ -1,0 +1,40 @@
+# Version control and local editor state
+.git/
+.vscode/
+.idea/
+
+# Local Python environments and caches
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+**/.cache/
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+
+# User files and local databases should be persisted separately at runtime
+uploads/
+*.sqlite
+*.sqlite3
+
+# Build and test output
+build/
+dist/
+*.egg-info/
+.coverage
+coverage.xml
+htmlcov/
+
+# OS noise and logs
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

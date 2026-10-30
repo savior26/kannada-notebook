@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101010" data-theme-color>
+  <title>{{ notebook.title }} · Kannada Notebook LM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/notebook.css') }}?v=20261030-4">
+  <script src="{{ url_for('static', path='/js/language-theme.js') }}?v=20261030-3" defer></script>
+  <script src="{{ url_for('static', path='/js/notebook.js') }}?v=20261030-3" defer></script>
+</head>
+<body>
+  <header class="notebook-topbar">
+    <a class="back-brand" href="/dashboard" aria-label="Back to notebooks"><span class="brand-mark">K</span></a>
+    <h1 title="{{ notebook.title }}">{{ notebook.title }}</h1>
+    <div class="topbar-right"><span class="source-count">{{ notebook.documents|length }} {{ 'source' if notebook.documents|length == 1 else 'sources' }}</span><span class="avatar">{{ user.email[:1]|upper }}</span><div class="language-picker" data-language-picker>
+        <button class="language-trigger" type="button" aria-expanded="false" aria-haspopup="listbox"><img class="language-icon" src="/static/images/language.png" alt=""><span class="language-current">English</span><span aria-hidden="true">&#9662;</span></button>
+        <div class="language-menu" role="listbox" aria-label="Choose answer language" hidden>
+          <input class="language-search" type="search" placeholder="Search language..." aria-label="Search language">
+          <button type="button" role="option" data-language="en">English</button>
+          <button type="button" role="option" data-language="hi">Hindi</button>
+          <button type="button" role="option" data-language="kn">Kannada</button>
+        </div>
+      </div><button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to light theme" title="Switch theme"><img class="theme-icon" src="/static/images/sun.png" alt=""></button></div>
+  </header>
+
+  <div class="workspace" id="workspace">
+    <aside class="sources-panel" id="sources-panel" aria-label="Notebook sources">
+      <div class="sources-heading"><h2>Sources <span>({{ notebook.documents|length }})</span></h2><button class="panel-toggle" type="button" data-panel-toggle aria-label="Hide sources panel" title="Hide sources">◧</button></div>
+
+      <details class="add-source" open>
+        <summary><span aria-hidden="true">＋</span> Add sources</summary>
+        <div class="add-source-content">
+          <form action="/dashboard/notebooks/{{ notebook.id }}/sources" method="post" enctype="multipart/form-data" class="source-form" data-upload-form>
+            <label class="source-drop" for="source-file"><span class="drop-icon" aria-hidden="true">↑</span><strong>Upload a file</strong><span>PDF, image, or .txt · up to 20 MB</span><input id="source-file" type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.txt" required></label>
+            <button class="source-submit" type="submit">Upload source</button>
+          </form>
+
+          <details class="paste-source">
+            <summary><span aria-hidden="true">▤</span> Paste copied text</summary>
+            <form action="/dashboard/notebooks/{{ notebook.id }}/text-sources" method="post" class="paste-form">
+              <label for="text-title">Source name</label>
+              <input id="text-title" name="title" maxlength="250" placeholder="Copied text">
+              <label for="pasted-text">Text</label>
+              <textarea id="pasted-text" name="pasted_text" rows="7" maxlength="20000000" placeholder="Paste your text here…" required></textarea>
+              <button class="source-submit" type="submit">Add text source</button>
+            </form>
+          </details>
+        </div>
+      </details>
+
+      {% if message %}<p class="notice" role="status">{{ message }}</p>{% endif %}
+
+      <div class="source-list-heading"><span>Your sources</span><span>{{ notebook.documents|length }}</span></div>
+      <ul class="source-list selectable-source-list">
+        {% for document in notebook.documents %}
+          <li title="{{ document.filename }}">
+            <label class="source-choice">
+              <input type="checkbox" name="document_ids" value="{{ document.id }}" form="question-form" {% if selected_document_ids and document.id in selected_document_ids %}checked{% endif %}>
+              <span class="file-badge">{% if document.filename.lower().endswith('.pdf') %}PDF{% elif document.filename.lower().endswith('.txt') %}TXT{% else %}IMG{% endif %}</span>
+              <span class="source-name">{{ document.filename }}</span>
+            </label>
+          </li>
+        {% else %}
+          <li class="no-sources">Sources you add will appear here.</li>
+        {% endfor %}
+      </ul>
+      <p class="source-filter-note">Select sources to limit answers. With none selected, all sources are used.</p>
+      <a class="dashboard-link" href="/dashboard">← All notebooks</a>
+    </aside>
+
+    <main class="chat-area">
+      <button class="show-sources" type="button" data-panel-toggle aria-label="Show sources panel" hidden>☰ Sources</button>
+      <section class="conversation" aria-live="polite">
+        {% if conversation %}
+          {% for item in conversation %}
+            <div class="question-bubble">{{ item.question }}</div>
+            <article class="answer-card"><div class="answer-label"><span class="sparkle">&#10022;</span> Answer</div><div class="answer-text">{{ item.answer }}</div><p class="answer-note">Generated from selected notebook sources. Review important details in the original documents.</p></article>
+          {% endfor %}
+        {% else %}
+          <div class="welcome-state"><span class="brand-mark welcome-brand-mark" aria-hidden="true">K</span><p class="welcome-kicker">YOUR NOTEBOOK</p><h2>Ask about your sources</h2><p>Upload a PDF, image, or text file, or paste copied text. Then ask a question about the material in this notebook.</p></div>
+        {% endif %}
+      </section>
+
+      <div class="composer-area">
+        {% if message %}<p class="chat-notice" role="status">{{ message }}</p>{% endif %}
+        <form id="question-form" class="question-composer" action="/dashboard/notebooks/{{ notebook.id }}/questions" method="post">
+          <input type="hidden" name="response_language" value="en" data-response-language>
+          <textarea name="question" rows="1" placeholder="Ask a question about your sources" aria-label="Your question" required></textarea>
+          <div class="composer-controls"><button class="speech-button" type="button" data-speech-input aria-label="Speak your question" title="Speak question">&#127908;</button><button class="speak-answer-button" type="button" data-speak-answer aria-label="Read answers aloud" title="Read answers aloud">&#128264;</button><span>{{ notebook.documents|length }} {{ 'source' if notebook.documents|length == 1 else 'sources' }}</span><button type="submit" aria-label="Send question" title="Ask question">↑</button></div>
+        </form>
+        <p class="disclaimer">Answers use only this notebook’s sources and may need verification.</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

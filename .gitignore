@@ -1,0 +1,45 @@
+# Python environments and generated files
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+*.egg-info/
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
+
+# User documents and runtime data
+uploads/*
+!uploads/.gitkeep
+
+# Hugging Face / transformer model caches (if configured inside this repo)
+.cache/
+.cache/
+huggingface/
+transformers/
+sentence_transformers/
+
+# Test, coverage, and type-checker artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Logs and local database files
+*.log
+*.sqlite
+*.sqlite3
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

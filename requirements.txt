@@ -1,0 +1,31 @@
+# Web application and ASGI server
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+
+# Validation, settings, authentication, and database
+pydantic>=2,<3
+email-validator
+python-dotenv
+SQLAlchemy
+psycopg2-binary
+pgvector
+PyJWT
+pwdlib[argon2]
+
+# Google Gemini and LangChain integrations
+langchain-core
+langchain-google-genai
+langchain-text-splitters
+
+# Multilingual embeddings and reranking
+langchain-huggingface
+sentence-transformers
+
+# OCR, PDF, image preprocessing
+Pillow
+numpy
+opencv-python-headless
+pytesseract
+PyMuPDF

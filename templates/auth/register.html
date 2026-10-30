@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151f2a">
+  <title>Create account · Kannada Notebook LM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/auth.css') }}">
+  <script src="{{ url_for('static', path='/js/auth.js') }}" defer></script>
+</head>
+<body>
+  <main class="auth-shell">
+    <a class="brand" href="/auth/login" aria-label="Kannada Notebook LM home"><span class="brand-mark">K</span><span>Kannada Notebook LM</span></a>
+    <section class="auth-panel register-panel" aria-labelledby="page-title">
+      <div class="eyebrow">MAKE SPACE FOR WHAT MATTERS</div>
+      <h1 id="page-title">Create your account</h1>
+      <p class="subtitle">Start building a home for your research and ideas.</p>
+
+      {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+
+      <form action="/auth/register" method="post" class="auth-form" id="register-form">
+        <label for="email">Email address</label>
+        <div class="input-wrap"><span class="input-icon" aria-hidden="true">✉</span>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" value="{{ email|default('', true) }}" required autofocus>
+        </div>
+
+        <label for="password">Password</label>
+        <div class="input-wrap"><span class="input-icon key-icon" aria-hidden="true">⌑</span>
+          <input id="password" name="password" type="password" autocomplete="new-password" placeholder="4–8 characters" minlength="4" maxlength="8" required>
+          <button class="visibility-toggle" type="button" aria-label="Show password" aria-pressed="false" data-password-toggle="password"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m4 4 16 16"/></svg></button>
+        </div>
+
+        <label for="confirm-password">Confirm password</label>
+        <div class="input-wrap"><span class="input-icon key-icon" aria-hidden="true">⌑</span>
+          <input id="confirm-password" name="confirm_password" type="password" autocomplete="new-password" placeholder="Enter your password again" minlength="4" maxlength="8" required>
+          <button class="visibility-toggle" type="button" aria-label="Show password" aria-pressed="false" data-password-toggle="confirm-password"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m4 4 16 16"/></svg></button>
+        </div>
+        <p class="password-hint">Use 4–8 characters.</p>
+        <button class="primary-button" type="submit">Create account <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="switch-auth">Already have an account? <a class="text-link" href="/auth/login">Sign in</a></p>
+    </section>
+    <footer>Your notebooks stay yours</footer>
+  </main>
+</body>
+</html>

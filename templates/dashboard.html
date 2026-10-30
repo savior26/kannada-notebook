@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101010" data-theme-color>
+  <title>My notebooks · Kannada Notebook LM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=20261030-3">
+  <script src="{{ url_for('static', path='/js/language-theme.js') }}?v=20261030-3" defer></script>
+  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=20261030-3" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/dashboard"><span class="brand-mark">K</span><span>Kannada Notebook LM</span></a>
+    <nav class="main-nav" aria-label="Main navigation"><a class="active" href="/dashboard">My notebooks</a></nav>
+    <div class="top-actions">
+      <label class="search-box"><span aria-hidden="true">⌕</span><input id="notebook-search" type="search" placeholder="Search notebooks" aria-label="Search notebooks"></label>
+      <div class="language-picker" data-language-picker>
+        <button class="language-trigger" type="button" aria-expanded="false" aria-haspopup="listbox"><img class="language-icon" src="/static/images/language.png" alt=""><span class="language-current">English</span><span aria-hidden="true">&#9662;</span></button>
+        <div class="language-menu" role="listbox" aria-label="Choose answer language" hidden>
+          <input class="language-search" type="search" placeholder="Search language..." aria-label="Search language">
+          <button type="button" role="option" data-language="en">English</button>
+          <button type="button" role="option" data-language="hi">Hindi</button>
+          <button type="button" role="option" data-language="kn">Kannada</button>
+        </div>
+      </div>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch to light theme" title="Switch theme"><img class="theme-icon" src="/static/images/sun.png" alt=""></button>
+      <span class="user-avatar" title="{{ user.email }}">{{ user.email[:1]|upper }}</span>
+      <form action="/auth/logout" method="post"><button class="sign-out" type="submit">Sign out</button></form>
+    </div>
+  </header>
+
+  <main class="dashboard-main">
+    <div class="page-heading">
+      <div><p class="overline">YOUR LIBRARY</p><h1>My notebooks</h1><p class="welcome">Welcome back, {{ display_name }}</p></div>
+      <details class="create-menu">
+        <summary><span aria-hidden="true">＋</span> New notebook</summary>
+        <form action="/dashboard/notebooks" method="post" class="create-form">
+          <label for="notebook-title">Notebook name</label>
+          <input id="notebook-title" name="title" maxlength="255" placeholder="e.g. Kannada literature" required autofocus>
+          <label for="notebook-description">Description <span>(optional)</span></label>
+          <textarea id="notebook-description" name="description" rows="2" placeholder="What are you researching?"></textarea>
+          <button class="create-submit" type="submit">Create notebook</button>
+        </form>
+      </details>
+    </div>
+
+    {% if message %}<p class="toast" role="status">{{ message }}</p>{% endif %}
+
+    {% if notebooks %}
+      <section class="notebook-grid" id="notebook-grid" aria-label="Your notebooks">
+        {% for notebook in notebooks %}
+          <article class="notebook-card" data-search="{{ notebook.title|lower }} {{ (notebook.description or '')|lower }} {% for doc in notebook.documents %}{{ doc.filename|lower }} {% endfor %}">
+            <div class="card-top"><span class="notebook-icon" aria-hidden="true">{% if loop.index % 3 == 1 %}📒{% elif loop.index % 3 == 2 %}📚{% else %}🗂️{% endif %}</span><span class="card-menu" aria-hidden="true">···</span></div>
+            <h2 title="{{ notebook.title }}">{{ notebook.title }}</h2>
+            {% if notebook.description %}<p class="card-description">{{ notebook.description }}</p>{% endif %}
+            <p class="card-meta">{{ notebook.created_at|india_time }} <span>·</span> {{ notebook.documents|length }} {{ 'source' if notebook.documents|length == 1 else 'sources' }}</p>
+
+            <div class="document-list">
+              {% for document in notebook.documents[:4] %}
+                <div class="document-row" title="{{ document.filename }}">
+                  <span class="document-type">{% if document.filename.lower().endswith('.pdf') %}PDF{% else %}IMG{% endif %}</span>
+                  <span class="document-name">{{ document.filename }}</span>
+                  <span class="document-state">{% if document.total_pages %}{{ document.total_pages }} pages{% else %}Added{% endif %}</span>
+                </div>
+              {% else %}
+                <p class="empty-sources">No documents yet. Add a PDF or image.</p>
+              {% endfor %}
+              {% if notebook.documents|length > 4 %}<p class="more-sources">and {{ notebook.documents|length - 4 }} more sources</p>{% endif %}
+            </div>
+
+            <a class="open-notebook" href="/dashboard/notebooks/{{ notebook.id }}">Open notebook <span aria-hidden="true">→</span></a>
+          </article>
+        {% endfor %}
+      </section>
+      <p class="no-search-results" id="no-search-results" hidden>No notebooks match your search.</p>
+    {% else %}
+      <section class="empty-library">
+        <div class="empty-art" aria-hidden="true">📚</div>
+        <h2>Your notebook space is ready</h2>
+        <p>Create a notebook to collect documents and keep your research together.</p>
+        <button class="empty-create" type="button" onclick="document.querySelector('.create-menu').open = true; document.getElementById('notebook-title').focus();">＋ Create your first notebook</button>
+      </section>
+      <section class="notebook-grid" id="notebook-grid" aria-label="Your notebooks"></section>
+    {% endif %}
+  </main>
+</body>
+</html>
