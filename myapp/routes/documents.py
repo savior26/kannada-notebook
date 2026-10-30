@@ -32,9 +32,16 @@ def _browser_user(
         return None
 
 
-def _notebook_redirect(notebook_id: UUID, message: str) -> RedirectResponse:
+def _notebook_redirect(
+    notebook_id: UUID,
+    message: str,
+    source_id: UUID | None = None,
+) -> RedirectResponse:
+    query = f"message={quote(message)}"
+    if source_id is not None:
+        query += f"&source_id={source_id}"
     return RedirectResponse(
-        f"/dashboard/notebooks/{notebook_id}?message={quote(message)}",
+        f"/dashboard/notebooks/{notebook_id}?{query}",
         status_code=303,
     )
 
@@ -273,7 +280,7 @@ def upload_document(
             notebook.id,
             "Could not process that source. Check OCR and embedding configuration.",
         )
-    return _notebook_redirect(notebook.id, "Source added to notebook.")
+    return _notebook_redirect(notebook.id, "Source added to notebook.", source_id=document.id)
 
 
 @router.post("/{notebook_id}/text-sources")
@@ -326,4 +333,4 @@ def add_pasted_text(
             db.commit()
         stored_path.unlink(missing_ok=True)
         return _notebook_redirect(notebook.id, "Could not index that text")
-    return _notebook_redirect(notebook.id, "Text added as a source")
+    return _notebook_redirect(notebook.id, "Text added as a source", source_id=document.id)

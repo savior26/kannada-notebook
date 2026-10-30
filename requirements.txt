@@ -26,6 +26,8 @@ sentence-transformers
 # OCR, PDF, image preprocessing
 Pillow
 numpy
+sformers
+Pillow
 opencv-python-headless
 pytesseract
 PyMuPDF

@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/notebook.css') }}?v=20261030-4">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/notebook.css') }}?v=20261030-5">
   <script src="{{ url_for('static', path='/js/language-theme.js') }}?v=20261030-3" defer></script>
-  <script src="{{ url_for('static', path='/js/notebook.js') }}?v=20261030-3" defer></script>
+  <script src="{{ url_for('static', path='/js/notebook.js') }}?v=20261030-4" defer></script>
 </head>
 <body>
   <header class="notebook-topbar">
@@ -34,14 +34,14 @@
       <details class="add-source" open>
         <summary><span aria-hidden="true">＋</span> Add sources</summary>
         <div class="add-source-content">
-          <form action="/dashboard/notebooks/{{ notebook.id }}/sources" method="post" enctype="multipart/form-data" class="source-form" data-upload-form>
+          <form action="/dashboard/notebooks/{{ notebook.id }}/sources" method="post" enctype="multipart/form-data" class="source-form" data-upload-form data-processing-form>
             <label class="source-drop" for="source-file"><span class="drop-icon" aria-hidden="true">↑</span><strong>Upload a file</strong><span>PDF, image, or .txt · up to 20 MB</span><input id="source-file" type="file" name="file" accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff,.txt" required></label>
             <button class="source-submit" type="submit">Upload source</button>
           </form>
 
           <details class="paste-source">
             <summary><span aria-hidden="true">▤</span> Paste copied text</summary>
-            <form action="/dashboard/notebooks/{{ notebook.id }}/text-sources" method="post" class="paste-form">
+            <form action="/dashboard/notebooks/{{ notebook.id }}/text-sources" method="post" class="paste-form" data-processing-form>
               <label for="text-title">Source name</label>
               <input id="text-title" name="title" maxlength="250" placeholder="Copied text">
               <label for="pasted-text">Text</label>
@@ -55,11 +55,11 @@
       {% if message %}<p class="notice" role="status">{{ message }}</p>{% endif %}
 
       <div class="source-list-heading"><span>Your sources</span><span>{{ notebook.documents|length }}</span></div>
-      <ul class="source-list selectable-source-list">
+      <ul class="source-list selectable-source-list" id="source-list">
         {% for document in notebook.documents %}
-          <li title="{{ document.filename }}">
+          <li title="{{ document.filename }}" data-document-id="{{ document.id }}" {% if latest_source_id and document.id|string == latest_source_id|string %}data-new-source="true"{% endif %}>
             <label class="source-choice">
-              <input type="checkbox" name="document_ids" value="{{ document.id }}" form="question-form" {% if selected_document_ids and document.id in selected_document_ids %}checked{% endif %}>
+              <input type="checkbox" name="document_ids" value="{{ document.id }}" form="question-form" {% if selected_document_ids is not defined or selected_document_ids is none or document.id in selected_document_ids %}checked{% endif %}>
               <span class="file-badge">{% if document.filename.lower().endswith('.pdf') %}PDF{% elif document.filename.lower().endswith('.txt') %}TXT{% else %}IMG{% endif %}</span>
               <span class="source-name">{{ document.filename }}</span>
             </label>

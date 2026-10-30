@@ -113,6 +113,7 @@ def notebook_page(
     notebook_id: UUID,
     request: Request,
     message: str | None = None,
+    source_id: str | None = None,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     cookie_token: str | None = Cookie(default=None, alias="access_token"),
     db: Session = Depends(get_db),
@@ -130,6 +131,7 @@ def notebook_page(
             "user": user,
             "notebook": notebook,
             "message": message,
+            "latest_source_id": source_id,
             "conversation": list(
                 reversed(
                     db.query(NotebookQA)

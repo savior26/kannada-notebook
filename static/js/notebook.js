@@ -49,10 +49,46 @@ document.querySelectorAll("[data-panel-toggle]").forEach((button) => {
   });
 });
 
-document.querySelector("[data-upload-form]")?.addEventListener("submit", (event) => {
-  const fileInput = event.currentTarget.querySelector('input[type="file"]');
-  if (!fileInput.files.length) {
-    event.preventDefault();
-    fileInput.reportValidity();
+function showProcessingSource(form) {
+  const list = document.getElementById("source-list");
+  if (!list) return;
+
+  let sourceName = "Copied text.txt";
+  const fileInput = form.querySelector('input[type="file"]');
+  if (fileInput?.files?.length) {
+    sourceName = fileInput.files[0].name;
+  } else {
+    const title = form.querySelector('[name="title"]')?.value.trim();
+    if (title) sourceName = title.toLowerCase().endsWith(".txt") ? title : `${title}.txt`;
   }
+
+  const row = document.createElement("li");
+  row.className = "processing-source";
+  row.setAttribute("role", "status");
+  row.innerHTML = '<span class="processing-spinner" aria-hidden="true"></span><span class="processing-copy"><span class="processing-name"></span><span class="processing-stage">Uploading, processing and chunking…</span></span>';
+  row.querySelector(".processing-name").textContent = sourceName;
+  list.prepend(row);
+  row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  form.setAttribute("aria-busy", "true");
+  form.querySelectorAll('button[type="submit"]').forEach((button) => {
+    button.disabled = true;
+    button.textContent = "Processing…";
+  });
+}
+
+document.querySelectorAll("[data-processing-form]").forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    const fileInput = form.querySelector('input[type="file"]');
+    if (fileInput && !fileInput.files.length) {
+      event.preventDefault();
+      fileInput.reportValidity();
+      return;
+    }
+    showProcessingSource(form);
+  });
 });
+
+const newlyAddedSource = document.querySelector("[data-new-source='true']");
+if (newlyAddedSource) {
+  requestAnimationFrame(() => newlyAddedSource.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+}
