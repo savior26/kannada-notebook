@@ -9,7 +9,7 @@ pydantic>=2,<3
 email-validator
 python-dotenv
 SQLAlchemy
-psycopg2-binary
+psycopg[binary]
 pgvector
 PyJWT
 pwdlib[argon2]
