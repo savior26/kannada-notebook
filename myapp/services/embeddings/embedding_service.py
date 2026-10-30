@@ -2,7 +2,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 
 embedding_model = HuggingFaceEmbeddings(
-    model_name="intfloat/multilingual-e5-base"
+    model_name="intfloat/multilingual-e5-small"
 )
 
 
