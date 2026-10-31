@@ -1,5 +1,8 @@
-# Kannada Notebook LM
+# PROJECT NAME : Kannada Notebook LM
 
+## Problem Statement : Kannada Text Digitization
+
+## Description 
 A web app for organizing documents into private notebooks, extracting Kannada text from scans, and asking questions grounded in selected sources. Sources can be PDFs, images, UTF-8 text files, or pasted text. The app supports English, Hindi, and Kannada answers, saved notebook Q&A, and browser speech input/output.
 
 ## Features
