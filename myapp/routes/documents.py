@@ -1,4 +1,8 @@
+import logging
+import re
+from time import perf_counter
 from pathlib import Path
+from os import replace
 from urllib.parse import quote
 from uuid import UUID, uuid4
 
@@ -15,6 +19,7 @@ from myapp.routes.auth import bearer_scheme, get_current_user
 
 router = APIRouter(prefix="/dashboard/notebooks", tags=["documents"])
 templates = Jinja2Templates(directory="templates")
+logger = logging.getLogger(__name__)
 
 UPLOAD_ROOT = Path("uploads")
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
@@ -56,13 +61,28 @@ def _owned_notebook(db: Session, notebook_id: UUID, user: User) -> Notebook | No
 def _index_text(db: Session, document: Document, text: str) -> None:
     if not text.strip():
         return
+    import_started = perf_counter()
     from langchain_core.documents import Document as TextDocument
 
     from myapp.services.chunking.doc_chunking import create_chunks
     from myapp.services.search.chunks_2_db import save_chunks
 
+    logger.info(
+        "Text source %s processing modules ready in %.2f seconds",
+        document.id,
+        perf_counter() - import_started,
+    )
+
+    chunk_started = perf_counter()
     source_page = TextDocument(page_content=text, metadata={"page_number": 1})
-    save_chunks(db, document.id, create_chunks([source_page]))
+    chunks = create_chunks([source_page])
+    logger.info(
+        "Text source %s split into %s chunk(s) in %.2f seconds",
+        document.id,
+        len(chunks),
+        perf_counter() - chunk_started,
+    )
+    save_chunks(db, document.id, chunks)
 
 
 def _process_uploaded_document(db: Session, document: Document, path: Path) -> None:
@@ -91,6 +111,75 @@ def _process_uploaded_document(db: Session, document: Document, path: Path) -> N
         from myapp.services.search.chunks_2_db import save_chunks
 
         save_chunks(db, document.id, create_chunks(pages))
+
+
+@router.post("/{notebook_id}/documents/{document_id}/edit")
+def edit_document(
+    notebook_id: UUID,
+    document_id: UUID,
+    filename: str = Form(...),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    cookie_token: str | None = Cookie(default=None, alias="access_token"),
+    db: Session = Depends(get_db),
+):
+    user = _browser_user(credentials, cookie_token, db)
+    if user is None:
+        return RedirectResponse("/auth/login", status_code=303)
+    notebook = _owned_notebook(db, notebook_id, user)
+    if notebook is None:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    document = db.query(Document).filter_by(id=document_id, notebook_id=notebook.id).first()
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    requested_name = Path(filename.strip()).name
+    old_extension = Path(document.filename).suffix
+    if old_extension and Path(requested_name).suffix.lower() != old_extension.lower():
+        requested_name = f"{requested_name}{old_extension}"
+    new_name = requested_name[:255].strip()
+    if not new_name or new_name in {".", ".."} or re.search(r"[<>:\"|?*\x00-\x1f]", new_name):
+        return _notebook_redirect(notebook.id, "Enter a valid document name.")
+    old_path = Path(document.file_path) if document.file_path else None
+    new_path = old_path.with_name(new_name) if old_path else None
+    if new_path and old_path != new_path and new_path.exists():
+        return _notebook_redirect(notebook.id, "A file with that name already exists.")
+    try:
+        if old_path and new_path and old_path.exists() and old_path != new_path:
+            replace(old_path, new_path)
+        document.filename = new_name
+        if new_path:
+            document.file_path = str(new_path)
+        db.commit()
+    except Exception:
+        db.rollback()
+        if old_path and new_path and old_path != new_path and new_path.exists() and not old_path.exists():
+            replace(new_path, old_path)
+        return _notebook_redirect(notebook.id, "Could not rename that document.")
+    return _notebook_redirect(notebook.id, "Document renamed.")
+
+
+@router.post("/{notebook_id}/documents/{document_id}/delete")
+def delete_document(
+    notebook_id: UUID,
+    document_id: UUID,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    cookie_token: str | None = Cookie(default=None, alias="access_token"),
+    db: Session = Depends(get_db),
+):
+    user = _browser_user(credentials, cookie_token, db)
+    if user is None:
+        return RedirectResponse("/auth/login", status_code=303)
+    notebook = _owned_notebook(db, notebook_id, user)
+    if notebook is None:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    document = db.query(Document).filter_by(id=document_id, notebook_id=notebook.id).first()
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    stored_path = Path(document.file_path) if document.file_path else None
+    db.delete(document)
+    db.commit()
+    if stored_path:
+        stored_path.unlink(missing_ok=True)
+    return _notebook_redirect(notebook.id, "Document deleted.")
 
 
 @router.post("/{notebook_id}/questions")

@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=20261030-3">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}?v=20261031-1">
   <script src="{{ url_for('static', path='/js/language-theme.js') }}?v=20261030-3" defer></script>
-  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=20261030-3" defer></script>
+  <script src="{{ url_for('static', path='/js/dashboard.js') }}?v=20261031-1" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -54,7 +54,13 @@
       <section class="notebook-grid" id="notebook-grid" aria-label="Your notebooks">
         {% for notebook in notebooks %}
           <article class="notebook-card" data-search="{{ notebook.title|lower }} {{ (notebook.description or '')|lower }} {% for doc in notebook.documents %}{{ doc.filename|lower }} {% endfor %}">
-            <div class="card-top"><span class="notebook-icon" aria-hidden="true">{% if loop.index % 3 == 1 %}📒{% elif loop.index % 3 == 2 %}📚{% else %}🗂️{% endif %}</span><span class="card-menu" aria-hidden="true">···</span></div>
+            <div class="card-top"><span class="notebook-icon" aria-hidden="true">{% if loop.index % 3 == 1 %}📒{% elif loop.index % 3 == 2 %}📚{% else %}🗂️{% endif %}</span>
+              <details class="card-actions"><summary class="card-menu" aria-label="Notebook actions" title="Notebook actions">···</summary><div class="card-action-menu">
+                <button type="button" class="menu-action" data-open-edit>✎ <span>Edit notebook</span></button>
+                <form action="/dashboard/notebooks/{{ notebook.id }}/delete" method="post" data-confirm="Delete ‘{{ notebook.title }}’ and all its sources? This cannot be undone."><button class="menu-action danger" type="submit">⌫ <span>Delete notebook</span></button></form>
+                <form action="/dashboard/notebooks/{{ notebook.id }}/edit" method="post" class="rename-form" hidden><label for="title-{{ notebook.id }}">Notebook name</label><input id="title-{{ notebook.id }}" name="title" value="{{ notebook.title }}" maxlength="255" required><label for="description-{{ notebook.id }}">Description</label><textarea id="description-{{ notebook.id }}" name="description" rows="2">{{ notebook.description or '' }}</textarea><button type="submit">Save changes</button></form>
+              </div></details>
+            </div>
             <h2 title="{{ notebook.title }}">{{ notebook.title }}</h2>
             {% if notebook.description %}<p class="card-description">{{ notebook.description }}</p>{% endif %}
             <p class="card-meta">{{ notebook.created_at|india_time }} <span>·</span> {{ notebook.documents|length }} {{ 'source' if notebook.documents|length == 1 else 'sources' }}</p>

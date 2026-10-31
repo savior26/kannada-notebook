@@ -1,3 +1,4 @@
+from pathlib import Path
 from urllib.parse import quote
 from uuid import UUID
 
@@ -106,6 +107,51 @@ def create_notebook(
     db.add(notebook)
     db.commit()
     return _dashboard_redirect("Notebook created.")
+
+
+@router.post("/notebooks/{notebook_id}/edit")
+def edit_notebook(
+    notebook_id: UUID,
+    title: str = Form(...),
+    description: str = Form(""),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    cookie_token: str | None = Cookie(default=None, alias="access_token"),
+    db: Session = Depends(get_db),
+):
+    user = _browser_user(credentials, cookie_token, db)
+    if user is None:
+        return RedirectResponse("/auth/login", status_code=303)
+    notebook = _owned_notebook(db, notebook_id, user)
+    if notebook is None:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    title = title.strip()
+    if not title or len(title) > 255:
+        return _dashboard_redirect("Notebook title must be between 1 and 255 characters.")
+    notebook.title = title
+    notebook.description = description.strip() or None
+    db.commit()
+    return _dashboard_redirect("Notebook updated.")
+
+
+@router.post("/notebooks/{notebook_id}/delete")
+def delete_notebook(
+    notebook_id: UUID,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    cookie_token: str | None = Cookie(default=None, alias="access_token"),
+    db: Session = Depends(get_db),
+):
+    user = _browser_user(credentials, cookie_token, db)
+    if user is None:
+        return RedirectResponse("/auth/login", status_code=303)
+    notebook = _owned_notebook(db, notebook_id, user)
+    if notebook is None:
+        raise HTTPException(status_code=404, detail="Notebook not found")
+    upload_paths = [Path(doc.file_path) for doc in notebook.documents if doc.file_path]
+    db.delete(notebook)
+    db.commit()
+    for path in upload_paths:
+        path.unlink(missing_ok=True)
+    return _dashboard_redirect("Notebook deleted.")
 
 
 @router.get("/notebooks/{notebook_id}")

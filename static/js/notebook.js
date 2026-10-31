@@ -88,6 +88,37 @@ document.querySelectorAll("[data-processing-form]").forEach((form) => {
   });
 });
 
+document.querySelectorAll("[data-confirm]").forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+  });
+});
+
+document.querySelectorAll(".source-actions").forEach((menu) => {
+  menu.addEventListener("toggle", () => {
+    if (menu.open) document.querySelectorAll(".source-actions[open]").forEach((other) => {
+      if (other !== menu) other.open = false;
+    });
+  });
+  menu.querySelector("[data-open-rename]")?.addEventListener("click", () => {
+    const form = menu.querySelector(".source-rename-form");
+    if (form) {
+      form.hidden = false;
+      menu.querySelector("[data-open-rename]").hidden = true;
+      form.querySelector("input")?.focus();
+    }
+  });
+});
+
+document.querySelectorAll(".source-rename-form").forEach((form) => {
+  form.addEventListener("submit", () => {
+    const input = form.querySelector("[data-file-extension]");
+    if (input && !input.value.trim().toLocaleLowerCase().endsWith(input.dataset.fileExtension.toLocaleLowerCase())) {
+      input.value = `${input.value.trim()}${input.dataset.fileExtension}`;
+    }
+  });
+});
+
 const newlyAddedSource = document.querySelector("[data-new-source='true']");
 if (newlyAddedSource) {
   requestAnimationFrame(() => newlyAddedSource.scrollIntoView({ behavior: "smooth", block: "nearest" }));

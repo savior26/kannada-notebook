@@ -8,9 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', path='/css/notebook.css') }}?v=20261030-5">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/notebook.css') }}?v=20261031-2">
   <script src="{{ url_for('static', path='/js/language-theme.js') }}?v=20261030-3" defer></script>
-  <script src="{{ url_for('static', path='/js/notebook.js') }}?v=20261030-4" defer></script>
+  <script src="{{ url_for('static', path='/js/notebook.js') }}?v=20261031-1" defer></script>
 </head>
 <body>
   <header class="notebook-topbar">
@@ -58,11 +58,16 @@
       <ul class="source-list selectable-source-list" id="source-list">
         {% for document in notebook.documents %}
           <li title="{{ document.filename }}" data-document-id="{{ document.id }}" {% if latest_source_id and document.id|string == latest_source_id|string %}data-new-source="true"{% endif %}>
-            <label class="source-choice">
+            <div class="source-row-main">
               <input type="checkbox" name="document_ids" value="{{ document.id }}" form="question-form" {% if selected_document_ids is not defined or selected_document_ids is none or document.id in selected_document_ids %}checked{% endif %}>
               <span class="file-badge">{% if document.filename.lower().endswith('.pdf') %}PDF{% elif document.filename.lower().endswith('.txt') %}TXT{% else %}IMG{% endif %}</span>
               <span class="source-name">{{ document.filename }}</span>
-            </label>
+            </div>
+            <details class="source-actions"><summary aria-label="Source actions" title="Source actions">···</summary><div class="source-action-menu">
+                <button type="button" class="menu-action" data-open-rename>✎ <span>Rename source</span></button>
+                <form action="/dashboard/notebooks/{{ notebook.id }}/documents/{{ document.id }}/delete" method="post" data-confirm="Delete ‘{{ document.filename }}’ and its chunks? This cannot be undone."><button class="menu-action danger" type="submit">⌫ <span>Delete source</span></button></form>
+                <form action="/dashboard/notebooks/{{ notebook.id }}/documents/{{ document.id }}/edit" method="post" class="source-rename-form" hidden><label for="source-name-{{ document.id }}">New source name</label><div class="source-rename-fields"><input id="source-name-{{ document.id }}" name="filename" value="{{ document.filename.rsplit('.', 1)[0] if '.' in document.filename else document.filename }}" maxlength="255" data-file-extension="{{ '.' + document.filename.rsplit('.', 1)[1] if '.' in document.filename else '' }}" required><button type="submit">Save</button></div></form>
+              </div></details>
           </li>
         {% else %}
           <li class="no-sources">Sources you add will appear here.</li>

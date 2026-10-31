@@ -71,6 +71,20 @@ a { color:inherit; text-decoration:none; }
 .source-choice { display:flex; min-width:0; align-items:center; gap:9px; padding:8px 5px; cursor:pointer; }
 .source-choice input { width:15px; height:15px; flex:0 0 auto; accent-color:#8fc9ff; }
 .source-choice .source-name { flex:1; }
+.source-row-main { display:flex; min-width:0; flex:1; align-items:center; gap:9px; }
+.source-row-main > input { width:15px; height:15px; flex:0 0 auto; accent-color:#8fc9ff; }
+.source-actions { position:relative; flex:0 0 auto; }
+.source-actions summary { display:grid; width:27px; height:27px; place-items:center; border-radius:50%; color:#aaa; font-size:17px; letter-spacing:1px; cursor:pointer; list-style:none; }
+.source-actions summary:hover,.source-actions[open] summary { background:#393939; color:#fff; }
+.source-action-menu { position:absolute; z-index:8; top:29px; right:0; display:flex; width:280px; max-width:calc(100vw - 40px); flex-direction:column; gap:5px; padding:10px; border:1px solid #393939; border-radius:11px; background:#222; box-shadow:0 14px 36px #0009; }
+.source-rename-form { display:flex; flex-direction:column; gap:6px; padding:6px 2px 2px; border-top:1px solid #393939; }
+.source-rename-fields { display:flex; flex-direction:column; gap:8px; }
+.source-rename-fields input { width:100%; min-width:0; min-height:38px; flex:1 1 auto; padding:9px 10px; font-size:12px; }
+.source-rename-fields button { width:auto!important; min-width:96px; align-self:flex-end; padding:7px 14px!important; text-align:center!important; }
+.source-rename-form input { width:100%; min-width:0; padding:7px; border:1px solid #414141; border-radius:7px; background:#151515; color:#eee; font-size:10px; }
+.source-action-menu button { width:100%; min-height:28px; padding:5px 8px; border:0; border-radius:7px; background:#145fbc; color:#fff; font-size:10px; cursor:pointer; text-align:left; }
+.source-action-menu .delete-action { background:transparent; color:#ff8e8e; }
+.source-action-menu .delete-action:hover { background:#472626; }
 .question-composer:focus-within { border-color:#4a6c84; }
 .question-composer textarea { width:100%; min-height:25px; max-height:150px; padding:4px 0; border:0; outline:0; background:transparent; color:#eee; font-size:13px; line-height:1.55; resize:vertical; }
 .question-composer textarea::placeholder { color:#828282; }
@@ -240,3 +254,10 @@ html[data-theme="light"] .language-menu [role="option"][aria-selected="true"] { 
 :root[data-theme="light"] .selectable-source-list li[data-new-source="true"] { border-color:#abcde0; background:#eff8fd; }
 :root[data-theme="light"] .processing-name { color:#263849; }
 :root[data-theme="light"] .processing-stage { color:#437492; }
+
+:root[data-theme='light'] .source-action-menu { background:#fff; border-color:#dce1e8; box-shadow:0 14px 36px #15243a24; }
+:root[data-theme='light'] .source-rename-form input { background:#f8f9fb; color:#20242a; border-color:#d9dee6; }
+
+:root[data-theme='light'] .menu-action { color:#25303a; }
+:root[data-theme='light'] .menu-action:hover { background:#eef2f6; }
+:root[data-theme='light'] .menu-action.danger { color:#b42323; }
