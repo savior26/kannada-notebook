@@ -83,7 +83,7 @@
         {% if conversation %}
           {% for item in conversation %}
             <div class="question-bubble">{{ item.question }}</div>
-            <article class="answer-card"><div class="answer-label"><span class="sparkle">&#10022;</span> Answer</div><div class="answer-text">{{ item.answer }}</div><p class="answer-note">Generated from selected notebook sources. Review important details in the original documents.</p></article>
+            <article class="answer-card"><div class="answer-text">{{ item.answer }}</div></article>
           {% endfor %}
         {% else %}
           <div class="welcome-state"><span class="brand-mark welcome-brand-mark" aria-hidden="true">K</span><p class="welcome-kicker">YOUR NOTEBOOK</p><h2>Ask about your sources</h2><p>Upload a PDF, image, or text file, or paste copied text. Then ask a question about the material in this notebook.</p></div>

@@ -1,10 +1,10 @@
-# Web application and ASGI server
+# FastAPI application and form/file handling
 fastapi
 uvicorn[standard]
 jinja2
 python-multipart
 
-# Validation, settings, authentication, and database
+# Settings, validation, authentication, and persistence
 pydantic>=2,<3
 email-validator
 python-dotenv
@@ -14,20 +14,17 @@ pgvector
 PyJWT
 pwdlib[argon2]
 
-# Google Gemini and LangChain integrations
+# Gemini chat and document chunking
 langchain-core
 langchain-google-genai
 langchain-text-splitters
 
-# Multilingual embeddings and reranking
-langchain-huggingface
-sentence-transformers
+# Jina embedding API client
+requests
 
-# OCR, PDF, image preprocessing
+# Kannada OCR and document/image processing
 Pillow
 numpy
-sentence-transformers
-Pillow
 opencv-python-headless
 pytesseract
 PyMuPDF

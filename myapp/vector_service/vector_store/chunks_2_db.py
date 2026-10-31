@@ -2,7 +2,7 @@ import logging
 from time import perf_counter
 
 from myapp.database.models import OCRChunk
-from myapp.services.embeddings.embedding_service import create_embeddings
+from myapp.vector_service.embeddings.embedding_service import create_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,20 @@ def save_chunks(
 
     embedding_started = perf_counter()
     embeddings = create_embeddings(texts)
+    if len(embeddings) != len(chunks):
+        raise ValueError(
+            f"Embedding service returned {len(embeddings)} vectors for {len(chunks)} chunks"
+        )
+
+    expected_dimensions = OCRChunk.__table__.c.embedding.type.dim
+    invalid_dimensions = sorted(
+        {len(embedding) for embedding in embeddings if len(embedding) != expected_dimensions}
+    )
+    if invalid_dimensions:
+        raise ValueError(
+            f"Embedding service returned vector dimensions {invalid_dimensions}; "
+            f"database expects {expected_dimensions}"
+        )
     logger.info(
         "Generated embeddings for %s chunk(s) in %.2f seconds",
         len(texts),

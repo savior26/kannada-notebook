@@ -1,54 +1,53 @@
 # Kannada Notebook LM
 
-A web app for organizing document sources into notebooks, extracting Kannada text from scans, and asking questions grounded in selected sources. It supports PDF, image, UTF-8 text, and pasted-text sources, cross-language questions, saved notebook Q&A, speech input/output, and light/dark themes.
+A web app for organizing documents into private notebooks, extracting Kannada text from scans, and asking questions grounded in selected sources. Sources can be PDFs, images, UTF-8 text files, or pasted text. The app supports English, Hindi, and Kannada answers, saved notebook Q&A, and browser speech input/output.
 
 ## Features
 
-- User registration, login, and logout with signed access tokens.
-- Private notebooks containing uploaded or pasted sources.
-- Kannada OCR for scanned PDFs and images using Tesseract, with Gemini used for handwriting or low-confidence OCR.
-- Text chunking, multilingual embeddings, vector similarity search, and reranking.
-- Questions can be limited to selected notebook documents; successful question/answer pairs are saved in notebook history.
-- Answers can be requested in English, Hindi, or Kannada.
-- Browser speech recognition and speech synthesis controls.
-- Responsive notebook and dashboard pages with persisted language and theme preferences.
+- User registration, login, and logout using signed JWT cookies.
+- Private notebooks and document uploads.
+- Kannada OCR for scanned PDFs and images using Tesseract; Gemini can transcribe handwriting and assist with low-confidence OCR.
+- Text chunking, Jina AI embeddings, PostgreSQL/pgvector similarity search, and source filtering.
+- Gemini-powered question answering grounded in retrieved notebook sources.
+- Responsive dashboard and notebook pages with language and theme preferences.
 
-## Stack
+## Technology
 
-- Python, FastAPI, SQLAlchemy, Jinja2
+- Python 3.10+
+- FastAPI, Uvicorn, Jinja2, SQLAlchemy, and Pydantic
 - PostgreSQL with the `pgvector` extension
-- Google Gemini through LangChain
-- Hugging Face `intfloat/multilingual-e5-base` embeddings and `BAAI/bge-reranker-v2-m3` reranking
-- Tesseract OCR, Pillow, OpenCV, and PyMuPDF
-- Plain HTML, CSS, and JavaScript
+- Google Gemini via LangChain
+- Jina AI Embeddings API
+- Tesseract OCR with Kannada language data, Pillow, OpenCV, NumPy, and PyMuPDF
+- HTML, CSS, and JavaScript
 
-## Requirements
+## Prerequisites
 
 - Python 3.10 or newer
-- PostgreSQL with pgvector installed and enabled
+- PostgreSQL with `pgvector` installed
 - Tesseract OCR installed with Kannada language data (`kan.traineddata`)
-- A Google AI API key for Gemini handwriting OCR and question answering
-- Internet access on first use to download the embedding and reranker models
+- A Google AI API key for Gemini
+- Jina AI API credentials for vector embeddings
 
-On Windows, install Tesseract and ensure `tesseract.exe` is on `PATH`, or set `TESSERACT_CMD` to its full path. Install the Kannada trained data into Tesseract's `tessdata` directory. On Debian/Ubuntu, the relevant system packages are commonly `tesseract-ocr` and `tesseract-ocr-kan`; install PostgreSQL and the pgvector package for your PostgreSQL version as well.
+On Windows, add `tesseract.exe` to `PATH` or set `TESSERACT_CMD` to its full path. On Debian or Ubuntu, the Tesseract packages are commonly named `tesseract-ocr` and `tesseract-ocr-kan`. Install the pgvector package matching your PostgreSQL version.
 
 ## Setup
 
-### 1. Create a PostgreSQL database
+### 1. Create the database
 
-Create a database and enable pgvector in it:
+Create a PostgreSQL database, then enable pgvector in it:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-For example, from `psql` connected to your app database:
+For example:
 
 ```bash
 psql -d kannada_notebook -c "CREATE EXTENSION IF NOT EXISTS vector;"
 ```
 
-### 2. Create a virtual environment
+### 2. Create a virtual environment and install dependencies
 
 Windows PowerShell:
 
@@ -70,36 +69,41 @@ pip install -r requirements.txt
 
 ### 3. Configure environment variables
 
-Copy `.env.example` to `.env` and set the database URL, a random secret key of at least 32 characters, and your Google AI API key. Keep `.env` private and never commit it.
+Copy `.env.example` to `.env` and provide your database URL, a random secret of at least 32 characters, Google AI API key, and Jina API settings. Keep `.env` private and do not commit it.
 
 ```env
-DATABASE_URL=postgresql+psycopg2://postgres:password@localhost:5432/kannada_notebook
+DATABASE_URL=postgresql+psycopg://postgres:password@localhost:5432/kannada_notebook
 SECRET_KEY=replace-with-a-random-secret-at-least-32-characters-long
-GOOGLE_API_KEY=replace-with-your-google-ai-api-key
+GOOGLE_API_KEY=your-google-ai-api-key
+JINA_API_URL=https://api.jina.ai/v1/embeddings
+JINA_MODEL=jina-embeddings-v3
+JINA_API_KEY=your-jina-api-key
+
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 JWT_ALGORITHM=HS256
 COOKIE_SECURE=false
+
 TESSERACT_CMD=tesseract
 OCR_LANGUAGE=kan
 OCR_ENGINE_MODE=1
 OCR_PAGE_SEGMENTATION=6
 ```
 
-`COOKIE_SECURE=false` is appropriate for local HTTP development. Set it to `true` behind HTTPS in production. `TESSERACT_CMD` can be set to a full executable path, such as `C:\Program Files\Tesseract-OCR\tesseract.exe`.
+`DATABASE_URL` uses the `psycopg` driver. `COOKIE_SECURE=false` is suitable for local HTTP development; enable it when serving the app over HTTPS. `TESSERACT_CMD` can be a full path, for example `C:\Program Files\Tesseract-OCR\tesseract.exe`.
 
-### 4. Run the app
+### 4. Start the app
 
-From the repository root, with the virtual environment activated:
+From the repository root with the virtual environment active:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-Open <http://127.0.0.1:8000>. FastAPI's interactive API documentation is at <http://127.0.0.1:8000/docs>.
+Open <http://127.0.0.1:8000>. Interactive API documentation is at <http://127.0.0.1:8000/docs>.
 
-The app calls SQLAlchemy `create_all()` at startup to create missing tables and applies the existing `auth_token_version` column compatibility statement. `create_all()` does not migrate changes to already existing tables; use a database migration when the schema evolves beyond adding new tables.
+At startup, the app creates missing tables and applies a compatibility statement for the `users.auth_token_version` column. SQLAlchemy `create_all()` does not migrate other schema changes to existing tables; use database migrations as the schema evolves.
 
-## Run with Docker
+## Docker
 
 Build the image from the repository root:
 
@@ -107,69 +111,61 @@ Build the image from the repository root:
 docker build -t kannada-notebook-lm .
 ```
 
-The image includes Tesseract and Kannada language data. Pass the required settings through an environment file and persist uploaded files and Hugging Face model downloads in Docker volumes:
+Run it with the required settings from `.env`:
 
 ```bash
 docker run --rm --name kannada-notebook-lm \
   --env-file .env \
   -p 8000:8000 \
-  -v kannada_uploads:/app/uploads \
-  -v kannada_hf_cache:/home/app/.cache/huggingface \
   kannada-notebook-lm
 ```
 
-If PostgreSQL runs directly on the host, set `DATABASE_URL` in `.env` to use `host.docker.internal` instead of `localhost` (for example, `postgresql+psycopg2://user:password@host.docker.internal:5432/kannada_notebook`). If PostgreSQL runs in another container, put both containers on the same Docker network and use the database container or service name as the host. Enable pgvector in the database before starting the app.
+The image installs Tesseract and Kannada language data. If PostgreSQL runs on the host, use `host.docker.internal` as the database hostname instead of `localhost`. If PostgreSQL runs in another container, connect both containers to the same Docker network and use the database service name. Enable pgvector in the database before starting the app.
 
-The container listens on port `8000`. Open <http://127.0.0.1:8000> on the host.
+## Using the app
 
-## Use
-
-1. Register an account and sign in.
+1. Register and sign in.
 2. Create a notebook.
 3. Add a PDF, image, UTF-8 `.txt` file, or pasted text.
-4. Wait for OCR and embedding to finish. The first file that needs embeddings may trigger large model downloads; avoid restarting the development server during that first download.
-5. Select one or more source checkboxes in the left panel, then ask a question. If no sources are selected, retrieval uses all sources in the notebook.
-6. Select English, Hindi, or Kannada in the header to set the response language.
+4. Wait for OCR and embedding to finish. Embeddings are generated by the configured Jina API, so uploads require network access and valid Jina credentials.
+5. Select source checkboxes and ask a question. With no sources selected, retrieval uses all documents in the notebook.
+6. Choose English, Hindi, or Kannada as the answer language.
 
-The microphone and read-aloud buttons use browser speech APIs. Microphone access requires browser permission, and support varies by browser. Use a recent Chrome or Edge over localhost or HTTPS for speech recognition.
+Microphone and read-aloud controls use browser speech APIs. Microphone access requires browser permission. Speech recognition support varies by browser; a recent Chrome or Edge on localhost or HTTPS is recommended.
 
 ## Project layout
 
 ```text
-main.py                         FastAPI app and router registration
-myapp/config/                   Environment settings and Gemini client
-myapp/database/                 SQLAlchemy models and database session
-myapp/routes/                   Authentication, dashboard, and document routes
-myapp/ocr/                      Kannada OCR and document preprocessing
-myapp/services/chunking/        Text splitting
-myapp/services/embeddings/      Hugging Face embeddings
-myapp/services/search/          Vector retrieval and chunk persistence
-myapp/services/reranking/       Cross-encoder reranking
-myapp/services/response/        Context formatting and LLM answers
-templates/                      Jinja2 pages
-static/css/                     Page styles
-static/js/                      Browser interactions and speech controls
-static/images/                  UI icons
-uploads/                        User-uploaded files (runtime data, not source)
+main.py                              FastAPI application and router registration
+myapp/config/                        Application settings and Gemini client
+myapp/database/                      SQLAlchemy models and database session
+myapp/routes/                        Authentication, dashboard, and document routes
+myapp/ocr/                           Kannada OCR and document preprocessing
+myapp/vector_service/chunking/       Text splitting
+myapp/vector_service/embeddings/     Jina embedding API client
+myapp/vector_service/vector_store/   Vector persistence and retrieval
+myapp/vector_service/response/       Context formatting and LLM answers
+templates/                           Jinja2 pages
+static/                              CSS, JavaScript, and UI images
 ```
 
 ## Data and operations
 
-- Uploaded documents are stored under `uploads/<user-id>/<notebook-id>/`; document metadata, OCR chunks, vectors, and Q&A history are stored in PostgreSQL.
-- Back up the PostgreSQL database and `uploads/` together if you need to preserve notebook data.
-- Model weights are cached by Hugging Face in the current user's cache directory. The cache can be large.
-- Do not expose the development server directly to the public internet. Use HTTPS, secure cookies, managed secrets, and a production ASGI deployment for hosted use.
+- Original uploads are processed from temporary files and discarded after their chunks are saved.
+- PostgreSQL stores document metadata, OCR text chunks, vectors, and notebook Q&A history.
+- Back up PostgreSQL to preserve notebook sources and their searchable content.
+- Do not expose the development server directly to the public internet. For hosted use, configure HTTPS, secure cookies, managed secrets, and a production ASGI deployment.
 
 ## Troubleshooting
 
-- **Missing database configuration:** verify that `.env` exists in the project root and contains `DATABASE_URL` and `SECRET_KEY`.
-- **pgvector type or extension error:** install pgvector for PostgreSQL and run `CREATE EXTENSION IF NOT EXISTS vector;` in the app database.
+- **Missing database or secret configuration:** make sure `.env` exists in the repository root and defines `DATABASE_URL` and a `SECRET_KEY` of at least 32 characters.
+- **pgvector type or extension error:** install pgvector for your PostgreSQL version and run `CREATE EXTENSION IF NOT EXISTS vector;` in the app database.
 - **Tesseract executable not found:** install Tesseract and set `TESSERACT_CMD` to its executable path.
-- **Kannada language data missing:** install `kan.traineddata` into Tesseract's `tessdata` directory and make sure `OCR_LANGUAGE=kan`.
-- **Gemini requests fail:** check `GOOGLE_API_KEY`, network access, and provider quota.
-- **First upload is slow:** embedding and reranking models are downloaded on first use. Let the download finish before restarting the server.
-- **Static changes do not appear:** hard refresh the browser; versioned static asset URLs are used for cache busting where needed.
+- **Kannada language data missing:** install `kan.traineddata` and confirm `OCR_LANGUAGE=kan`.
+- **Gemini requests fail:** check `GOOGLE_API_KEY`, internet access, and provider quota.
+- **Embedding requests fail:** check `JINA_API_URL`, `JINA_MODEL`, `JINA_API_KEY`, internet access, and API quota.
+- **Static changes do not appear:** hard refresh the browser.
 
-## Development notes
+## Development
 
-There is no automated test suite configured in this repository yet. Keep uploaded files, local model caches, virtual environments, secrets, and generated Python files out of version control.
+No automated test suite is configured in this repository. Keep uploaded files, virtual environments, secrets, and generated Python files out of version control.

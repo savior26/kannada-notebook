@@ -1,4 +1,3 @@
-from pathlib import Path
 from urllib.parse import quote
 from uuid import UUID
 
@@ -146,11 +145,8 @@ def delete_notebook(
     notebook = _owned_notebook(db, notebook_id, user)
     if notebook is None:
         raise HTTPException(status_code=404, detail="Notebook not found")
-    upload_paths = [Path(doc.file_path) for doc in notebook.documents if doc.file_path]
     db.delete(notebook)
     db.commit()
-    for path in upload_paths:
-        path.unlink(missing_ok=True)
     return _dashboard_redirect("Notebook deleted.")
 
 

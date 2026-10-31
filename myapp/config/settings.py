@@ -16,6 +16,9 @@ class Settings(BaseModel):
     OCR_LANGUAGE: str = "kan"
     OCR_ENGINE_MODE: int = 1
     OCR_PAGE_SEGMENTATION: int = 6
+    JINA_API_URL: str = "https://api.jina.ai/v1/embeddings"
+    JINA_MODEL: str = "jina-embeddings-v3"
+    JINA_API_KEY: str = ""
 
     @property
     def EXPIRY(self) -> int:
@@ -35,9 +38,12 @@ settings = Settings(
     SECRET_KEY=secret_key,
     ACCESS_TOKEN_EXPIRE_MINUTES=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")),
     ALGORITHM=os.getenv("JWT_ALGORITHM", "HS256"),
-    COOKIE_SECURE=os.getenv("COOKIE_SECURE").lower() == "true",
+    COOKIE_SECURE=os.getenv("COOKIE_SECURE", "false").lower() == "true",
     TESSERACT_CMD=os.getenv("TESSERACT_CMD", "tesseract"),
     OCR_LANGUAGE=os.getenv("OCR_LANGUAGE", "kan"),
     OCR_ENGINE_MODE=int(os.getenv("OCR_ENGINE_MODE", "1")),
     OCR_PAGE_SEGMENTATION=int(os.getenv("OCR_PAGE_SEGMENTATION", "6")),
+    JINA_API_URL=os.getenv("JINA_API_URL", "https://api.jina.ai/v1/embeddings"),
+    JINA_MODEL=os.getenv("JINA_MODEL", "jina-embeddings-v3"),
+    JINA_API_KEY=os.getenv("JINA_API_KEY", ""),
 )

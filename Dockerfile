@@ -23,8 +23,8 @@ RUN python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
 RUN useradd --create-home --shell /usr/sbin/nologin appuser \
-    && mkdir -p /app/uploads /home/app/.cache/huggingface \
-    && chown -R appuser:appuser /app/uploads /home/app
+    && mkdir -p /home/app/.cache/huggingface \
+    && chown -R appuser:appuser /home/app
 
 COPY --chown=appuser:appuser . .
 

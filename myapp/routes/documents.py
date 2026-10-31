@@ -1,10 +1,10 @@
 import logging
 import re
+import tempfile
 from time import perf_counter
 from pathlib import Path
-from os import replace
 from urllib.parse import quote
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
@@ -21,7 +21,6 @@ router = APIRouter(prefix="/dashboard/notebooks", tags=["documents"])
 templates = Jinja2Templates(directory="templates")
 logger = logging.getLogger(__name__)
 
-UPLOAD_ROOT = Path("uploads")
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".txt"}
 
@@ -64,8 +63,8 @@ def _index_text(db: Session, document: Document, text: str) -> None:
     import_started = perf_counter()
     from langchain_core.documents import Document as TextDocument
 
-    from myapp.services.chunking.doc_chunking import create_chunks
-    from myapp.services.search.chunks_2_db import save_chunks
+    from myapp.vector_service.chunking.doc_chunking import create_chunks
+    from myapp.vector_service.vector_store.chunks_2_db import save_chunks
 
     logger.info(
         "Text source %s processing modules ready in %.2f seconds",
@@ -85,9 +84,9 @@ def _index_text(db: Session, document: Document, text: str) -> None:
     save_chunks(db, document.id, chunks)
 
 
-def _process_uploaded_document(db: Session, document: Document, path: Path) -> None:
-    if path.suffix.lower() == ".txt":
-        text = path.read_text(encoding="utf-8-sig")
+def _process_uploaded_document(db: Session, document: Document, filename: str, content: bytes) -> None:
+    if Path(filename).suffix.lower() == ".txt":
+        text = content.decode("utf-8-sig")
         document.total_pages = 1
         db.commit()
         _index_text(db, document, text)
@@ -97,7 +96,11 @@ def _process_uploaded_document(db: Session, document: Document, path: Path) -> N
 
     from myapp.ocr.ocr_service import kannada_ocr
 
-    result = kannada_ocr.process_file(str(path))
+    suffix = Path(filename).suffix.lower()
+    with tempfile.NamedTemporaryFile(suffix=suffix) as temporary_file:
+        temporary_file.write(content)
+        temporary_file.flush()
+        result = kannada_ocr.process_file(temporary_file.name)
     document.total_pages = result.total_pages
     document.average_confidence = result.average_confidence
     document.classification = result.document_classification
@@ -107,8 +110,8 @@ def _process_uploaded_document(db: Session, document: Document, path: Path) -> N
         for page in result.pages
     ]
     if pages:
-        from myapp.services.chunking.doc_chunking import create_chunks
-        from myapp.services.search.chunks_2_db import save_chunks
+        from myapp.vector_service.chunking.doc_chunking import create_chunks
+        from myapp.vector_service.vector_store.chunks_2_db import save_chunks
 
         save_chunks(db, document.id, create_chunks(pages))
 
@@ -138,22 +141,8 @@ def edit_document(
     new_name = requested_name[:255].strip()
     if not new_name or new_name in {".", ".."} or re.search(r"[<>:\"|?*\x00-\x1f]", new_name):
         return _notebook_redirect(notebook.id, "Enter a valid document name.")
-    old_path = Path(document.file_path) if document.file_path else None
-    new_path = old_path.with_name(new_name) if old_path else None
-    if new_path and old_path != new_path and new_path.exists():
-        return _notebook_redirect(notebook.id, "A file with that name already exists.")
-    try:
-        if old_path and new_path and old_path.exists() and old_path != new_path:
-            replace(old_path, new_path)
-        document.filename = new_name
-        if new_path:
-            document.file_path = str(new_path)
-        db.commit()
-    except Exception:
-        db.rollback()
-        if old_path and new_path and old_path != new_path and new_path.exists() and not old_path.exists():
-            replace(new_path, old_path)
-        return _notebook_redirect(notebook.id, "Could not rename that document.")
+    document.filename = new_name
+    db.commit()
     return _notebook_redirect(notebook.id, "Document renamed.")
 
 
@@ -174,11 +163,8 @@ def delete_document(
     document = db.query(Document).filter_by(id=document_id, notebook_id=notebook.id).first()
     if document is None:
         raise HTTPException(status_code=404, detail="Document not found")
-    stored_path = Path(document.file_path) if document.file_path else None
     db.delete(document)
     db.commit()
-    if stored_path:
-        stored_path.unlink(missing_ok=True)
     return _notebook_redirect(notebook.id, "Document deleted.")
 
 
@@ -224,6 +210,11 @@ def ask_notebook(
         has_chunks_query = has_chunks_query.filter(Document.id.in_(selected_ids))
     has_chunks = has_chunks_query.first()
     if not has_chunks:
+        no_answer = {
+            "en": "I could not find the answer in the provided documents.",
+            "hi": "I could not find the answer in the provided documents.",
+            "kn": "I could not find the answer in the provided documents.",
+        }.get(response_language, "I could not find the answer in the provided documents.")
         return templates.TemplateResponse(
             request=request,
             name="notebook.html",
@@ -246,7 +237,7 @@ def ask_notebook(
             },
         )
     try:
-        from myapp.services.response.llm_vector_response import answer_question
+        from myapp.vector_service.response.llm_vector_response import answer_question
 
         answer = answer_question(
             db=db,
@@ -334,15 +325,10 @@ def upload_document(
     if len(content) > MAX_UPLOAD_BYTES:
         return _notebook_redirect(notebook.id, "Files must be 20 MB or smaller.")
 
-    target_dir = UPLOAD_ROOT / str(user.id) / str(notebook.id)
-    target_dir.mkdir(parents=True, exist_ok=True)
-    stored_path = target_dir / f"{uuid4().hex}{suffix}"
-    stored_path.write_bytes(content)
-
     document = Document(
         notebook_id=notebook.id,
         filename=original_name[:255],
-        file_path=str(stored_path),
+        file_path=None,
         mime_type=file.content_type,
         file_size=len(content),
         total_pages=0,
@@ -351,20 +337,19 @@ def upload_document(
     try:
         db.commit()
         db.refresh(document)
-        _process_uploaded_document(db, document, stored_path)
+        _process_uploaded_document(db, document, original_name, content)
     except UnicodeDecodeError:
         db.rollback()
         if document.id:
             db.query(Document).filter(Document.id == document.id).delete()
             db.commit()
-        stored_path.unlink(missing_ok=True)
         return _notebook_redirect(notebook.id, "Text files must use UTF-8 encoding.")
     except Exception:
+        logger.exception("Failed to process uploaded source %s", document.id)
         db.rollback()
         if document.id:
             db.query(Document).filter(Document.id == document.id).delete()
             db.commit()
-        stored_path.unlink(missing_ok=True)
         return _notebook_redirect(
             notebook.id,
             "Could not process that source. Check OCR and embedding configuration.",
@@ -396,16 +381,12 @@ def add_pasted_text(
     if len(content) > MAX_UPLOAD_BYTES:
         return _notebook_redirect(notebook.id, "Text must be 20 MB or smaller")
 
-    target_dir = UPLOAD_ROOT / str(user.id) / str(notebook.id)
-    target_dir.mkdir(parents=True, exist_ok=True)
-    stored_path = target_dir / f"{uuid4().hex}.txt"
-    stored_path.write_bytes(content)
     safe_title = Path(title).name[:250].strip() or "Copied text"
     filename = safe_title if safe_title.lower().endswith(".txt") else f"{safe_title}.txt"
     document = Document(
         notebook_id=notebook.id,
         filename=filename[:255],
-        file_path=str(stored_path),
+        file_path=None,
         mime_type="text/plain; charset=utf-8",
         file_size=len(content),
         total_pages=1,
@@ -416,10 +397,10 @@ def add_pasted_text(
         db.refresh(document)
         _index_text(db, document, pasted_text)
     except Exception:
+        logger.exception("Failed to index pasted text for document %s", document.id)
         db.rollback()
         if document.id:
             db.query(Document).filter(Document.id == document.id).delete()
             db.commit()
-        stored_path.unlink(missing_ok=True)
         return _notebook_redirect(notebook.id, "Could not index that text")
     return _notebook_redirect(notebook.id, "Text added as a source", source_id=document.id)

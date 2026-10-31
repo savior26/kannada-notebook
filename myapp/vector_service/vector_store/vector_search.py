@@ -3,8 +3,7 @@ from typing import Optional, Dict
 from sqlalchemy.orm import Session
 
 from myapp.database.models import Document, Notebook, OCRChunk
-from myapp.services.embeddings.embedding_service import create_query_embedding
-from myapp.services.reranking.reranker import reranker
+from myapp.vector_service.embeddings.embedding_service import create_query_embedding
 
 
 def vector_search(
@@ -90,18 +89,9 @@ def vector_search(
                 query_embedding
             )
         )
-        .limit(10)
+        .limit(5)
         .all()
     )
 
-    # --------------------------------
-    # Stage 5: Reranking
-    # --------------------------------
 
-    reranked_chunks = reranker.rerank(
-        query=query,
-        documents=chunks,
-        top_k=5,
-    )
-
-    return reranked_chunks
+    return chunks
