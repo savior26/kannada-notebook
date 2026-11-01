@@ -5,6 +5,21 @@
 ## Description 
 A web app for organizing documents into private notebooks, extracting Kannada text from scans, and asking questions grounded in selected sources. Sources can be PDFs, images, UTF-8 text files, or pasted text. The app supports English, Hindi, and Kannada answers, saved notebook Q&A, and browser speech input/output.
 
+## Testing & Demo Access
+
+The application is deployed live on Render and supports self-registration. You do not need pre-configured credentials to test the features.
+
+### Live Application
+🔗 *[Live Demo](https://kannada-notebook-123.onrender.com)*
+
+### How to Test:
+1. Open the *[Live Demo](https://kannada-notebook-123.onrender.com)* link.
+2. Navigate to the *Sign Up* / *Register* page.
+3. Create a new account using any email and password.
+4. Log in and explore the application features.
+
+> *Note:* Initial load times may take 30–50 seconds if the Render instance is waking up from a free-tier sleep state.
+
 ## Features
 
 - User registration, login, and logout using signed JWT cookies.
@@ -18,7 +33,7 @@ A web app for organizing documents into private notebooks, extracting Kannada te
 
 - Python 3.10+
 - FastAPI, Uvicorn, Jinja2, SQLAlchemy, and Pydantic
-- PostgreSQL with the `pgvector` extension
+- A Supabase project with PostgreSQL and the `vector` (pgvector) extension enabled
 - Google Gemini via LangChain
 - Jina AI Embeddings API
 - Tesseract OCR with Kannada language data, Pillow, OpenCV, NumPy, and PyMuPDF
@@ -27,28 +42,26 @@ A web app for organizing documents into private notebooks, extracting Kannada te
 ## Prerequisites
 
 - Python 3.10 or newer
-- PostgreSQL with `pgvector` installed
+- A Supabase project with access to its PostgreSQL database
 - Tesseract OCR installed with Kannada language data (`kan.traineddata`)
 - A Google AI API key for Gemini
 - Jina AI API credentials for vector embeddings
 
-On Windows, add `tesseract.exe` to `PATH` or set `TESSERACT_CMD` to its full path. On Debian or Ubuntu, the Tesseract packages are commonly named `tesseract-ocr` and `tesseract-ocr-kan`. Install the pgvector package matching your PostgreSQL version.
+On Windows, add `tesseract.exe` to `PATH` or set `TESSERACT_CMD` to its full path. On Debian or Ubuntu, the Tesseract packages are commonly named `tesseract-ocr` and `tesseract-ocr-kan`.
 
 ## Setup
 
-### 1. Create the database
+### 1. Configure the Supabase database
 
-Create a PostgreSQL database, then enable pgvector in it:
+Create a project in Supabase, then enable pgvector in its database. In the Supabase Dashboard, open **SQL Editor** and run:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-For example:
+Get the PostgreSQL connection string from your project’s **Connect** panel. Use the **direct connection** for a long-running server when its network supports the endpoint’s IP version. If your host is IPv4-only, use Supabase’s **session pooler** connection string instead. Copy the connection string supplied by Supabase rather than constructing the pooler host or username yourself. Replace its password placeholder and URL-encode reserved characters in the password.
 
-```bash
-psql -d kannada_notebook -c "CREATE EXTENSION IF NOT EXISTS vector;"
-```
+For this FastAPI/SQLAlchemy app, set `DATABASE_URL` to the Supabase URI and use the `postgresql+psycopg://` SQLAlchemy dialect prefix. Keep the host, port, username, database name, and password from the Supabase-provided string. Require SSL by adding `?sslmode=require` (or `&sslmode=require` if the URI already has query parameters).
 
 ### 2. Create a virtual environment and install dependencies
 
@@ -75,7 +88,7 @@ pip install -r requirements.txt
 Copy `.env.example` to `.env` and provide your database URL, a random secret of at least 32 characters, Google AI API key, and Jina API settings. Keep `.env` private and do not commit it.
 
 ```env
-DATABASE_URL=postgresql+psycopg://postgres:password@localhost:5432/kannada_notebook
+DATABASE_URL=postgresql+psycopg://postgres:YOUR_PASSWORD@YOUR_SUPABASE_HOST:5432/postgres?sslmode=require
 SECRET_KEY=replace-with-a-random-secret-at-least-32-characters-long
 GOOGLE_API_KEY=your-google-ai-api-key
 JINA_API_URL=https://api.jina.ai/v1/embeddings
@@ -92,7 +105,7 @@ OCR_ENGINE_MODE=1
 OCR_PAGE_SEGMENTATION=6
 ```
 
-`DATABASE_URL` uses the `psycopg` driver. `COOKIE_SECURE=false` is suitable for local HTTP development; enable it when serving the app over HTTPS. `TESSERACT_CMD` can be a full path, for example `C:\Program Files\Tesseract-OCR\tesseract.exe`.
+Replace the example Supabase host, port, and password with the values in your project’s **Connect** panel; pooled connection strings have a different host, port, and username. `DATABASE_URL` uses the `psycopg` driver. Keep it secret and configure it in the deployment environment as well as your local `.env`. `COOKIE_SECURE=false` is suitable for local HTTP development; enable it when serving the app over HTTPS. `TESSERACT_CMD` can be a full path, for example `C:\Program Files\Tesseract-OCR\tesseract.exe`.
 
 ### 4. Start the app
 
@@ -123,7 +136,7 @@ docker run --rm --name kannada-notebook-lm \
   kannada-notebook-lm
 ```
 
-The image installs Tesseract and Kannada language data. If PostgreSQL runs on the host, use `host.docker.internal` as the database hostname instead of `localhost`. If PostgreSQL runs in another container, connect both containers to the same Docker network and use the database service name. Enable pgvector in the database before starting the app.
+The image installs Tesseract and Kannada language data. The container connects to Supabase over the network using `DATABASE_URL`; make sure the deployment can reach the selected Supabase endpoint and that the URL uses SSL. Enable pgvector in Supabase before starting the app.
 
 ## Using the app
 
@@ -162,13 +175,11 @@ static/                              CSS, JavaScript, and UI images
 ## Troubleshooting
 
 - **Missing database or secret configuration:** make sure `.env` exists in the repository root and defines `DATABASE_URL` and a `SECRET_KEY` of at least 32 characters.
-- **pgvector type or extension error:** install pgvector for your PostgreSQL version and run `CREATE EXTENSION IF NOT EXISTS vector;` in the app database.
+- **Supabase connection fails:** verify `DATABASE_URL` matches the connection method selected in Supabase’s **Connect** panel, the database password is URL-encoded if it contains reserved characters, and SSL is enabled. For IPv4-only hosts, try the Supabase session pooler.
+- **pgvector type or extension error:** run `CREATE EXTENSION IF NOT EXISTS vector;` in the Supabase SQL Editor for this project’s database.
 - **Tesseract executable not found:** install Tesseract and set `TESSERACT_CMD` to its executable path.
 - **Kannada language data missing:** install `kan.traineddata` and confirm `OCR_LANGUAGE=kan`.
 - **Gemini requests fail:** check `GOOGLE_API_KEY`, internet access, and provider quota.
 - **Embedding requests fail:** check `JINA_API_URL`, `JINA_MODEL`, `JINA_API_KEY`, internet access, and API quota.
 - **Static changes do not appear:** hard refresh the browser.
 
-## Development
-
-No automated test suite is configured in this repository. Keep uploaded files, virtual environments, secrets, and generated Python files out of version control.
