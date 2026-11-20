@@ -5,21 +5,6 @@
 ## Description 
 A web app for organizing documents into private notebooks, extracting Kannada text from scans, and asking questions grounded in selected sources. Sources can be PDFs, images, UTF-8 text files, or pasted text. The app supports English, Hindi, and Kannada answers, saved notebook Q&A, and browser speech input/output.
 
-## Testing & Demo Access
-
-The application is deployed live on Render and supports self-registration. You do not need pre-configured credentials to test the features.
-
-### Live Application
-🔗 *[Live Demo](https://kannada-notebook-123.onrender.com)*
-
-### How to Test:
-1. Open the *[Live Demo](https://kannada-notebook-123.onrender.com)* link.
-2. Navigate to the *Sign Up* / *Register* page.
-3. Create a new account using any email and password or use test credentials: Email: `xyz@xyz.in`, Password: `xyz@xyz`.
-5. Log in and explore the application features.
-
-> *Note:* Initial load times may take 30–50 seconds if the Render instance is waking up from a free-tier sleep state.
-
 ## Features
 
 - User registration, login, and logout using signed JWT cookies.
